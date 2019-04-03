@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessagePosted;
 use App\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +40,8 @@ class MessageController extends Controller
         $message['name'] = Auth::user()->name;
         $message['email'] = Auth::user()->email;
 
+        // Announce
+        event(new MessagePosted($message));
         return response()->json([
             'message' => 'Great success! New message created',
             'message_obj' => $message
