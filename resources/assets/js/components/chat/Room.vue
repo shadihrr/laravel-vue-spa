@@ -7,7 +7,8 @@
                     v-bind:key="message.id" v-for="message in messages">
                     <div v-show="update_id !== message.id">
                         {{message.name}}: {{message.body}}
-                        <button v-show="message.email == user.email" class="btn btn-danger float-left" @click="deleteMessage(message)">
+                        <button v-show="message.email == user.email" class="btn btn-danger float-left"
+                                @click="deleteMessage(message)">
                             <span>Delete</span>
                         </button>
                         <button v-show="message.email == user.email"
@@ -43,10 +44,23 @@
 </template>
 
 <script>
+
+    import Echo from 'laravel-echo'
+
+    window.Pusher = require('pusher-js');
+
+    // Specify pusher key in layouts.app header section
+    let pusherKey = "400f0368be6a50c94f1a";
+    let pusherCluster = "eu";
+    window.Echo = new Echo({
+        broadcaster: 'pusher',
+        key: pusherKey,
+        cluster: pusherCluster,
+        encrypted: true
+    });
     import AddMessageForm from "./addMessageForm";
     import {mapState} from 'vuex';
     import {api} from "../../config";
-
 
     export default {
         components: {AddMessageForm},
@@ -58,7 +72,7 @@
                 loading: false,
                 form: {
                     new_message: '',
-                },error: {
+                }, error: {
                     new_message: '',
                 }
             }
@@ -71,7 +85,7 @@
                     }).catch(err => console.log(err));
             },
             addSuccess(message) {
-                this.messages.push(message)
+                // this.messages.push(message)
                 this.$router.push({name: 'room'});
             },
             updateClicked(message) {
@@ -79,16 +93,16 @@
                 this.form.new_message = message.body
                 console.log(this.update_id)
             },
-            updateMessage(){
+            updateMessage() {
                 console.log(this.form.new_message)
                 this.loading = true;
-                var message = {body:this.form.new_message, room_id:"1"}
-                axios.put(api.Message+"/"+this.update_id, message)
+                var message = {body: this.form.new_message, room_id: "1"}
+                axios.put(api.Message + "/" + this.update_id, message)
                     .then((res) => {
                         this.loading = false;
                         this.$noty.success('Message updated');
                         for (var i = 0; i < this.messages.length; i++) {
-                            if (this.messages[i].id == res.data.message_obj.id){
+                            if (this.messages[i].id == res.data.message_obj.id) {
                                 this.messages[i] = res.data.message_obj;
                             }
                         }
@@ -97,20 +111,20 @@
                         return;
                     })
                     .catch(err => {
-                       console.log(err)
+                        console.log(err)
                         this.loading = false;
                         this.form.new_message = '';
                         this.update_id = -1;
                     });
             },
             deleteMessage(message) {
-                axios.delete(api.Message+"/"+message.id)
+                axios.delete(api.Message + "/" + message.id)
                     .then((res) => {
                         this.loading = false;
                         this.$noty.success('Message Deleted');
                         for (var i = 0; i < this.messages.length; i++) {
-                            if (this.messages[i].id == res.data.message_obj.id){
-                                this.messages.splice(i,i+1);
+                            if (this.messages[i].id == res.data.message_obj.id) {
+                                this.messages.splice(i, i + 1);
                                 break;
                             }
                         }
@@ -128,6 +142,13 @@
         },
         created() {
             this.getMessages()
+            window.Echo.channel('chat').listen('MessagePosted', (e) => {
+                var message = e.message;
+                message["email"] = e.user['email']
+                message["name"] = e.user['name']
+                this.messages.push(message)
+                console.log(e)
+            })
         },
         computed: mapState({
             user: state => state.auth
@@ -143,14 +164,16 @@
     .float-left {
         float: left;
     }
-    .float-right{
+
+    .float-right {
         float: right;
     }
 
     .margin-left-small {
         margin-left: 10px;
     }
-    .partial-form{
+
+    .partial-form {
         width: 80%;
     }
 </style>

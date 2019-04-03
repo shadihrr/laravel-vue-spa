@@ -41,7 +41,7 @@ class MessageController extends Controller
         $message['email'] = Auth::user()->email;
 
         // Announce
-        event(new MessagePosted($message));
+        event(new MessagePosted(Auth::user(), $message));
         return response()->json([
             'message' => 'Great success! New message created',
             'message_obj' => $message
